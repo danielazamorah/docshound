@@ -1,0 +1,44 @@
+{
+  "title": "ADK Python developer-guides catch-up: MultimodalToolResultsPlugin",
+  "source_repository": "google/adk-python",
+  "publish_repository": "danielazamorah/adk-python",
+  "source_ref": "main",
+  "publish_base": "main",
+  "researched_source_commit": "5134c9b0df18758852f314dc3fec7dd31d04ca2d",
+  "publish_base_commit": "5134c9b0df18758852f314dc3fec7dd31d04ca2d",
+  "include_recent_activity": false,
+  "issues": [
+    {
+      "number": 6695,
+      "required_state": "open",
+      "related_pull_requests": [6515],
+      "title": "[Feature Request] Support opt-in multi-turn retention of URI-based multimodal tool results",
+      "rationale": "The shipped MultimodalToolResultsPlugin (one-shot injection of URI-based Parts) is absent from the ADK Developer Guides index, so the documented plugins list is incomplete."
+    }
+  ],
+  "pull_requests": [
+    {
+      "number": 6515,
+      "required_state": "merged",
+      "title": "chore(release/candidate): release 2.6.0",
+      "rationale": "Release PR that shipped the MultimodalToolResultsPlugin feature commit (116b26c3); implementation evidence the plugin exists."
+    }
+  ],
+  "documentation": {
+    "root": "docs/guides",
+    "target_path": "docs/guides/README.md",
+    "expected_missing_snippets": [
+      "MultimodalToolResultsPlugin",
+      "multimodal_tool_results"
+    ]
+  },
+  "implementation_checks": [
+    {
+      "path": "src/google/adk/plugins/multimodal_tool_results_plugin.py",
+      "required_snippets": ["class MultimodalToolResultsPlugin"]
+    }
+  ],
+  "model": {
+    "primary": "google/gemini-3.7-flash"
+  }
+}

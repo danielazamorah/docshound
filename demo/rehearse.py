@@ -40,8 +40,13 @@ async def rehearse(scenario_name: str) -> None:
     settings = get_settings()
     if not settings.github_token:
         raise RuntimeError("GITHUB_TOKEN was not loaded for the rehearsal.")
-    if not settings.merge_gateway_api_key and not settings.openai_api_key:
-        raise RuntimeError("A model credential was not loaded for the rehearsal.")
+    from app.llm import llm_is_configured
+
+    if not llm_is_configured(settings):
+        raise RuntimeError(
+            "A model credential was not loaded for the rehearsal. Set "
+            "VERTEX_PROJECT, MERGE_GATEWAY_API_KEY, or OPENAI_API_KEY."
+        )
     expected_issue_refs = {
         f"{scenario.source_repository}#{reference.number}"
         for reference in scenario.issues
@@ -85,9 +90,26 @@ async def rehearse(scenario_name: str) -> None:
         raise RuntimeError("The analysis omitted at least one pinned issue.")
     if not expected_pr_refs.issubset(covered_pr_refs):
         raise RuntimeError("The analysis omitted the pinned implementation PR.")
-    if len(findings) != len(scenario.issues):
+    # "Pinned sources" = the exact issues and pull requests the scenario manifest
+    # hard-codes (e.g. issue #6695 and PR #6515). Pinning freezes the demo so the
+    # agent researches only those items and the run is reproducible.
+    #
+    # Here we require the analysis to produce findings that map to EXACTLY that
+    # pinned set: every pinned issue and PR is covered by some finding, and no
+    # finding references a source that was not pinned. We check the *set* of
+    # covered references rather than the *number* of findings on purpose, because
+    # the finding count legitimately depends on the repository's shape:
+    #   * OpenCode: the pinned PR is a real `feat` PR, so the model clusters it
+    #     with its issue into a single `open_gap` finding.
+    #   * google/adk-python (Copybara-mirrored from Google-internal): the feature
+    #     shipped as a commit with NO feature PR, so the only merged PR is a
+    #     release PR. It cannot cluster with the issue and correctly surfaces as
+    #     its own `shipped_change` finding alongside the issue's `open_gap`.
+    # Both shapes are valid as long as the findings cover exactly the pinned set.
+    if covered_issue_refs != expected_issue_refs or covered_pr_refs != expected_pr_refs:
         raise RuntimeError(
-            f"Expected {len(scenario.issues)} stage findings, got {len(findings)}."
+            "Findings must cover exactly the pinned sources "
+            "(every pinned issue and PR covered, and nothing unpinned)."
         )
     print(f"[PASS] analysis  {len(findings)} findings cover every pinned source")
 

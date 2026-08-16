@@ -31,14 +31,69 @@ class JSONCompletion(Generic[T]):
     provider: str
 
 
+_CLOUD_PLATFORM_SCOPE = "https://www.googleapis.com/auth/cloud-platform"
+_vertex_credentials: Any | None = None
+
+
+def _vertex_base_url(project: str, location: str) -> str:
+    """OpenAI-compatible base URL for Vertex AI. `global` uses the apex host."""
+    host = (
+        "aiplatform.googleapis.com"
+        if location == "global"
+        else f"{location}-aiplatform.googleapis.com"
+    )
+    return (
+        f"https://{host}/v1beta1/projects/{project}"
+        f"/locations/{location}/endpoints/openapi"
+    )
+
+
+def _vertex_access_token() -> str:
+    """Mint a fresh Vertex bearer token from Application Default Credentials.
+
+    Credentials are resolved once and refreshed as they expire, so this works
+    with local user ADC and with the attached service account after deployment.
+    """
+    global _vertex_credentials
+    import google.auth
+    from google.auth.transport.requests import Request
+
+    if _vertex_credentials is None:
+        _vertex_credentials, _ = google.auth.default(scopes=[_CLOUD_PLATFORM_SCOPE])
+    if not _vertex_credentials.valid:
+        _vertex_credentials.refresh(Request())
+    return _vertex_credentials.token
+
+
 def get_llm_route(settings: Settings | Any | None = None) -> LLMRoute | None:
-    """Resolve the configured model route, preferring Merge Gateway.
+    """Resolve the configured model route, preferring Vertex, then Merge Gateway.
 
     OPENAI_API_KEY remains a backwards-compatible direct-provider fallback for
     existing installations. When Gateway is configured, both models are called
     through its OpenAI-compatible endpoint with Gemini first.
     """
     settings = settings or get_settings()
+
+    vertex_project = getattr(settings, "vertex_project", None)
+    if vertex_project:
+        models = tuple(
+            model
+            for model in (
+                getattr(settings, "vertex_primary_model", "google/gemini-3.7-flash"),
+                getattr(settings, "vertex_fallback_model", "google/gemini-3.5-flash"),
+            )
+            if model
+        )
+        return LLMRoute(
+            api_key=_vertex_access_token(),
+            base_url=_vertex_base_url(
+                vertex_project,
+                getattr(settings, "vertex_location", "global"),
+            ),
+            models=models,
+            gateway="google",
+        )
+
     gateway_key = get_merge_gateway_api_key() or getattr(
         settings, "merge_gateway_api_key", None
     )

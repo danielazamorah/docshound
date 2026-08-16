@@ -440,24 +440,46 @@ def check_model(
     *,
     skip_live_probe: bool,
 ) -> None:
-    api_key = environment.get("MERGE_GATEWAY_API_KEY", "").strip()
-    if not api_key:
+    # Provider-agnostic credential check: Vertex AI (GCP) first, then Merge
+    # Gateway, then direct OpenAI - matching app.llm.get_llm_route priority.
+    vertex_project = environment.get("VERTEX_PROJECT", "").strip()
+    merge_key = environment.get("MERGE_GATEWAY_API_KEY", "").strip()
+    openai_key = environment.get("OPENAI_API_KEY", "").strip()
+    if vertex_project:
+        provider_label = "Vertex AI"
+        default_model = environment.get(
+            "VERTEX_PRIMARY_MODEL", "google/gemini-3.7-flash"
+        )
+        model_env_key = "VERTEX_PRIMARY_MODEL"
+        report.pass_(
+            provider_label, f"Project {vertex_project} configured (ADC auth)"
+        )
+    elif merge_key:
+        provider_label = "Merge Gateway"
+        default_model = environment.get(
+            "MERGE_GATEWAY_PRIMARY_MODEL", "google/gemini-3.7-flash"
+        )
+        model_env_key = "MERGE_GATEWAY_PRIMARY_MODEL"
+        report.pass_(provider_label, "Credential configured (value redacted)")
+    elif openai_key:
+        provider_label = "OpenAI"
+        default_model = environment.get("OPENAI_MODEL", "gpt-4o-mini")
+        model_env_key = "OPENAI_MODEL"
+        report.pass_(provider_label, "Credential configured (value redacted)")
+    else:
         report.fail(
-            "Merge Gateway",
-            "Set MERGE_GATEWAY_API_KEY in .env; a browser-only key is lost on restart.",
+            "model credential",
+            "Set VERTEX_PROJECT (GCP), MERGE_GATEWAY_API_KEY, or OPENAI_API_KEY "
+            "in .env.",
         )
         return
-    report.pass_("Merge Gateway", "Credential configured (value redacted)")
     if skip_live_probe:
         report.warn("agent scenario probe", "Skipped by command-line option")
         return
-    model = (scenario.get("model") or {}).get(
-        "primary",
-        environment.get("MERGE_GATEWAY_PRIMARY_MODEL", "google/gemini-3.7-flash"),
-    )
+    model = (scenario.get("model") or {}).get("primary", default_model)
     probe_environment = dict(environment)
     probe_environment["DOCSHOUND_DEMO_SCENARIO"] = scenario_name
-    probe_environment["MERGE_GATEWAY_PRIMARY_MODEL"] = model
+    probe_environment[model_env_key] = model
     probe_environment["PYTHONPATH"] = str(ROOT / "backend")
     probe = subprocess.run(
         [

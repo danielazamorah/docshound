@@ -15,6 +15,15 @@ class Settings(BaseSettings):
     merge_gateway_primary_model: str = "google/gemini-3.7-flash"
     merge_gateway_fallback_model: str = "openai/gpt-5.6-luna"
 
+    # Google 1P Gemini through Vertex AI's OpenAI-compatible endpoint. When
+    # vertex_project is set it takes priority over the Merge Gateway. Auth uses
+    # Application Default Credentials (user creds locally, the runtime service
+    # account on Agent Engine / Cloud Run) so no API keys are stored.
+    vertex_project: str | None = None
+    vertex_location: str = "global"
+    vertex_primary_model: str = "google/gemini-3.7-flash"
+    vertex_fallback_model: str = "google/gemini-3.5-flash"
+
     # Backwards compatibility for installations that call OpenAI directly.
     openai_api_key: str | None = None
     openai_model: str = "gpt-4o-mini"

@@ -5,6 +5,7 @@ description = "FastAPI backend for DocsHound"
 requires-python = ">=3.14,<3.15"
 dependencies = [
     "fastapi>=0.141.1,<0.142",
+    "google-auth>=2.0,<3",
     "httpx2>=2.10.0,<3",
     "langgraph>=1.2.11,<2",
     "openai>=3.1.0,<4",
