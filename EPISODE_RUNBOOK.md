@@ -148,7 +148,7 @@ PYTHONPATH=. uv run python deploy_agent_runtime.py list
 ### Query Deployed Agent Directly
 ```bash
 PYTHONPATH=. uv run python deploy_agent_runtime.py query \
-  projects/901293631737/locations/us-central1/reasoningEngines/4159805980864937984 \
+  projects/901293631737/locations/us-central1/reasoningEngines/4889107645522247680 \
   --repo google/adk-python
 ```
 
