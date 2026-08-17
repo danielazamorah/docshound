@@ -107,65 +107,83 @@ PYTHONPATH=. uv run python deploy_agent_runtime.py delete \
 
 ---
 
-## 2. Cloud Run Deployment & Enterprise Security Access
+## 2. Cloud Run Deployment Architecture: Local vs. Production vs. Enterprise IAM
 
-### Step 1: Deploy Backend to Cloud Run
+DocsHound supports three deployment patterns depending on the environment:
+
+### Architecture Matrix
+
+| Scenario | Frontend Host | Backend Host | How Browser Calls Backend | Use Case |
+| :--- | :--- | :--- | :--- | :--- |
+| **1. Local Development** | Vite (`localhost:5173`) | FastAPI (`localhost:8000`) | Vite dev proxy (`/api` -> `:8000`) | Standard daily feature development & local agent testing |
+| **2. Public Production** | Cloud Run / CDN (`app.domain.com`) | Cloud Run (`api.domain.com`) | Direct CORS fetch with `VITE_API_BASE_URL=https://api.domain.com` | Public SaaS / Open Source public deployments |
+| **3. Enterprise Production** | Cloud Run behind Cloud IAP | Cloud Run behind Cloud IAP | Single-domain IAP Load Balancer routing `/*` and `/api/*` | Enterprise internal tools with Google Workspace SSO |
+| **4. Enterprise Dev Proxy** | Cloud Run via `gcloud proxy :8080` | Cloud Run via `gcloud proxy :8000` | Local proxy injecting IAM identity tokens | Rehearsals, staging validations, and gMac / Santa development |
+
+---
+
+### Standard Public Production Deployment
+
+In a public deployment where unauthenticated invocations (`allUsers`) are permitted:
 
 ```bash
+# 1. Deploy Backend with public invoker
 cd backend
-
 gcloud run deploy docshound-backend \
   --source . \
-  --project=agent-clinic-e3-dev \
+  --project=my-gcp-project \
   --region=us-central1 \
-  --set-env-vars="VERTEX_PROJECT=agent-clinic-e3-dev,VERTEX_LOCATION=global,VERTEX_PRIMARY_MODEL=google/gemini-3.7-flash,VERTEX_FALLBACK_MODEL=google/gemini-3.5-flash" \
-  --quiet
-```
+  --allow-unauthenticated \
+  --set-env-vars="VERTEX_PROJECT=my-gcp-project,VERTEX_LOCATION=global,VERTEX_PRIMARY_MODEL=google/gemini-3.7-flash"
 
-### Step 2: Deploy Frontend to Cloud Run
-
-```bash
+# 2. Capture Backend URL and Deploy Frontend
 cd ../frontend
-
-BACKEND_URL=$(gcloud run services describe docshound-backend --project=agent-clinic-e3-dev --region=us-central1 --format="value(status.url)")
+BACKEND_URL=$(gcloud run services describe docshound-backend --project=my-gcp-project --region=us-central1 --format="value(status.url)")
 
 gcloud run deploy docshound-frontend \
   --source . \
-  --project=agent-clinic-e3-dev \
+  --project=my-gcp-project \
   --region=us-central1 \
-  --set-env-vars="VITE_API_BASE_URL=${BACKEND_URL}" \
-  --quiet
+  --allow-unauthenticated \
+  --set-env-vars="VITE_API_BASE_URL=${BACKEND_URL}"
 ```
 
-### Resolving `403 Forbidden` in Enterprise Environments
+---
 
-In enterprise or Google corporate environments, GCP Organization Policies (such as `constraints/iam.allowedPolicyMemberDomains`) disallow public unauthenticated access (`allUsers`). When you visit a raw `*.run.app` URL in a browser, the browser does not attach Google IAM identity tokens, resulting in:
-`Error: Forbidden - Your client does not have permission to get URL / from this server.`
+### Enterprise Production: Cloud Load Balancer + Identity-Aware Proxy (IAP)
 
-#### Option A: Local Authenticated Developer Proxy (Recommended for Dev & Demos)
-Use `gcloud run services proxy` to run a local proxy that automatically signs all requests with your active `gcloud` identity:
+In corporate environments where org policies forbid `allUsers`:
+1. Cloud Run services are deployed with `--no-allow-unauthenticated`.
+2. An **External HTTPS Application Load Balancer** is placed in front of both services on a single domain (e.g. `docshound.corp.example.com`).
+3. **Identity-Aware Proxy (IAP)** is enabled on the Load Balancer with OAuth 2.0 consent, granting access to corporate Google Workspace groups.
+4. The Load Balancer routes:
+   - `/*` to the `docshound-frontend` Serverless Network Endpoint Group (NEG).
+   - `/api/*` to the `docshound-backend` Serverless NEG.
+5. Result: Single origin, no CORS configuration required, and all corporate users authenticate transparently via SSO.
+
+---
+
+### Enterprise Developer Testing (`gcloud run services proxy`)
+
+When developers or CI runners test against IAM-protected Cloud Run services directly from their machines without configuring an enterprise Load Balancer:
 
 ```bash
-# Proxy the Frontend to http://localhost:8080
+# Terminal 1: Proxy the Frontend to http://localhost:8080
 gcloud run services proxy docshound-frontend \
   --project=agent-clinic-e3-dev \
   --region=us-central1 \
   --port=8080
 
-# Proxy the Backend to http://localhost:8000
+# Terminal 2: Proxy the Backend to http://localhost:8000
 gcloud run services proxy docshound-backend \
   --project=agent-clinic-e3-dev \
   --region=us-central1 \
   --port=8000
 ```
 
-Now you can open `http://localhost:8080` directly in any browser with full authenticated access.
+Because `gcloud run services proxy` injects your active `gcloud auth login` OAuth identity token on every request, both services communicate securely without requiring `allUsers` permissions.
 
-#### Option B: Corporate Identity-Aware Proxy (IAP) / Load Balancer (For Production)
-For production browser access across your team:
-1. Set up an external/internal Application Load Balancer with Cloud Run as a Serverless Network Endpoint Group (NEG).
-2. Enable **Identity-Aware Proxy (IAP)** on the backend service.
-3. Configure OAuth consent screen to grant browser SSO access to your domain/group members.
+Now you can open `http://localhost:8080` directly in any browser with full authenticated access.
 
 ---
 
