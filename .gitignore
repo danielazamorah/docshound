@@ -22,3 +22,6 @@ backend/data/*.db-wal
 .agents/
 .claude/
 .cursor/
+*.egg-info/
+dist/
+build/

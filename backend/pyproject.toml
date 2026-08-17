@@ -6,6 +6,7 @@ requires-python = ">=3.14,<3.15"
 dependencies = [
     "fastapi>=0.141.1,<0.142",
     "google-auth>=2.0,<3",
+    "google-cloud-aiplatform[agent-engines,langgraph]>=1.164.0",
     "httpx2>=2.10.0,<3",
     "langgraph>=1.2.11,<2",
     "openai>=3.1.0,<4",
@@ -24,6 +25,8 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
     "ruff>=0.16.3,<0.17",
 ]
 

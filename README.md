@@ -197,6 +197,15 @@ Each directory also has its own Dockerfile, so the frontend and backend can be
 built, deployed, scaled, and rolled back separately. Configure the backend's
 `ALLOWED_ORIGINS` with the deployed frontend origin.
 
+## Google Cloud Platform (Vertex AI Agent Runtime & Cloud Run)
+
+DocsHound can be deployed serverless to GCP:
+- **Vertex AI Agent Runtime**: Host the LangGraph agent as a managed Reasoning Engine (`backend/deploy_agent_runtime.py`).
+- **Cloud Run**: Deploy the FastAPI backend and Vite frontend independently with automatic scaling.
+- **Gemini 3.7 Flash**: High-speed, multimodal intelligence for gap identification and documentation drafting.
+
+See [`docs/DEPLOYMENT_GCP.md`](docs/DEPLOYMENT_GCP.md) for full deployment instructions and Agents CLI evaluation commands.
+
 ## API
 
 The versioned backend API is under `/api/v1`. Interactive OpenAPI documentation
