@@ -9,8 +9,21 @@ import type {
   SourceResolution,
 } from "./types";
 
-const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim() ?? "";
-export const API_BASE_URL = configuredBaseUrl.replace(/\/$/, "");
+function getApiBaseUrl(): string {
+  const envUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+  if (envUrl) {
+    return envUrl.replace(/\/$/, "");
+  }
+  if (
+    typeof window !== "undefined" &&
+    (window.location.port === "8080" || window.location.port === "8081")
+  ) {
+    return `${window.location.protocol}//${window.location.hostname}:8000`;
+  }
+  return "";
+}
+
+export const API_BASE_URL = getApiBaseUrl();
 
 export class ApiError extends Error {
   constructor(
