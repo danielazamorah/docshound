@@ -31,7 +31,14 @@ Put these in the root `.env` or `backend/.env` before running the demo:
 
 ```text
 GITHUB_TOKEN=github_pat_...
-MERGE_GATEWAY_API_KEY=...
+
+# Google Cloud Vertex AI (Recommended - zero API keys needed with ADC)
+VERTEX_PROJECT=your-gcp-project-id
+VERTEX_LOCATION=global
+
+# OR optional Merge Gateway fallback:
+# MERGE_GATEWAY_API_KEY=...
+
 LANGSMITH_API_KEY=lsv2_...
 ```
 

@@ -1129,7 +1129,7 @@ export function HomePage() {
                         <small>
                           {modelReady
                             ? `${runtimeConfig?.llm_primary_model ? modelLabel(runtimeConfig.llm_primary_model) : "Gemini 3.7 Flash"} connected`
-                            : "Merge Gateway key required"}
+                            : "Vertex AI ADC or Merge Gateway key required"}
                         </small>
                       </span>
                       <span className="readiness-action">
@@ -1142,7 +1142,9 @@ export function HomePage() {
                         onSubmit={saveGatewayKey}
                       >
                         <label htmlFor="merge-gateway-key">
-                          Merge Gateway API key
+                          {runtimeConfig?.llm_gateway === "google"
+                            ? "Merge Gateway API key (Optional override)"
+                            : "Merge Gateway API key"}
                         </label>
                         <input
                           id="merge-gateway-key"
@@ -1152,18 +1154,23 @@ export function HomePage() {
                           onChange={(event) =>
                             setGatewayKey(event.target.value)
                           }
-                          placeholder="Enter your key"
+                          placeholder={
+                            runtimeConfig?.llm_gateway === "google"
+                              ? "Vertex AI ADC active (key optional)"
+                              : "Enter your key"
+                          }
                           autoComplete="off"
                           spellCheck={false}
                           disabled={
                             runtimeConfig?.credential_input_enabled === false ||
                             savingGatewayKey
                           }
-                          required
+                          required={!modelReady}
                         />
                         <p>
-                          Sent to your local DocsHound backend and held only in
-                          memory until the server restarts.
+                          {runtimeConfig?.llm_gateway === "google"
+                            ? "Connected to Google Cloud Vertex AI via Application Default Credentials (ADC) — no API key needed."
+                            : "Sent to your local DocsHound backend and held only in memory until the server restarts."}
                         </p>
                         {runtimeConfig?.credential_input_enabled === false ? (
                           <div
@@ -1457,7 +1464,7 @@ function ProductPreview() {
             <div className="home-preview-route">
               <span>MODEL ROUTE</span>
               <strong>Gemini 3.7 Flash</strong>
-              <small>via Merge Gateway</small>
+              <small>via Vertex AI</small>
             </div>
           </aside>
 

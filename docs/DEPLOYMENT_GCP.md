@@ -47,10 +47,10 @@ Vertex AI Agent Runtime executes DocsHound's LangGraph workflow as a managed, se
 Set the environment variables in `backend/.env` or export them in your shell:
 
 ```bash
-export VERTEX_PROJECT="agent-clinic-e3-dev"
+export VERTEX_PROJECT="my-gcp-project"
 export VERTEX_LOCATION="global"
 export VERTEX_DEPLOY_LOCATION="us-central1"
-export VERTEX_STAGING_BUCKET="gs://agent-clinic-e3-dev-agent-runtime-staging"
+export VERTEX_STAGING_BUCKET="gs://my-gcp-project-staging"
 export VERTEX_PRIMARY_MODEL="google/gemini-3.7-flash"
 export VERTEX_FALLBACK_MODEL="google/gemini-3.5-flash"
 ```
@@ -67,7 +67,7 @@ PYTHONPATH=. uv run python deploy_agent_runtime.py deploy --display-name docshou
 
 # Explicitly update an existing Reasoning Engine revision
 PYTHONPATH=. uv run python deploy_agent_runtime.py update \
-  projects/901293631737/locations/us-central1/reasoningEngines/<REASONING_ENGINE_ID>
+  projects/<PROJECT_ID>/locations/us-central1/reasoningEngines/<REASONING_ENGINE_ID>
 ```
 
 ### Managing Revisions & Traffic Splitting
@@ -97,12 +97,12 @@ PYTHONPATH=. uv run python deploy_agent_runtime.py list
 
 # Query the deployed engine
 PYTHONPATH=. uv run python deploy_agent_runtime.py query \
-  projects/901293631737/locations/us-central1/reasoningEngines/<REASONING_ENGINE_ID> \
+  projects/<PROJECT_ID>/locations/us-central1/reasoningEngines/<REASONING_ENGINE_ID> \
   --repo google/adk-python
 
 # Clean up / delete an obsolete engine
 PYTHONPATH=. uv run python deploy_agent_runtime.py delete \
-  projects/901293631737/locations/us-central1/reasoningEngines/<OBSOLETE_ENGINE_ID>
+  projects/<PROJECT_ID>/locations/us-central1/reasoningEngines/<OBSOLETE_ENGINE_ID>
 ```
 
 ---
@@ -170,13 +170,13 @@ When developers or CI runners test against IAM-protected Cloud Run services dire
 ```bash
 # Terminal 1: Proxy the Frontend to http://localhost:8080
 gcloud run services proxy docshound-frontend \
-  --project=agent-clinic-e3-dev \
+  --project=my-gcp-project \
   --region=us-central1 \
   --port=8080
 
 # Terminal 2: Proxy the Backend to http://localhost:8000
 gcloud run services proxy docshound-backend \
-  --project=agent-clinic-e3-dev \
+  --project=my-gcp-project \
   --region=us-central1 \
   --port=8000
 ```
@@ -212,19 +212,19 @@ Extract execution traces and metrics directly using `gcloud logging read`:
 ```bash
 # 1. Query Agent Runtime Reasoning Engine logs
 gcloud logging read 'resource.type="aiplatform.googleapis.com/ReasoningEngine"' \
-  --project=agent-clinic-e3-dev \
+  --project=my-gcp-project \
   --limit=30 \
   --format="table(timestamp,textPayload)"
 
 # 2. Query Cloud Run Backend API requests and trace events
 gcloud logging read 'resource.type="cloud_run_revision" resource.labels.service_name="docshound-backend"' \
-  --project=agent-clinic-e3-dev \
+  --project=my-gcp-project \
   --limit=30 \
   --format="table(timestamp,httpRequest.requestMethod,httpRequest.requestUrl,httpRequest.status,textPayload)"
 
 # 3. Export structured logs as JSON for automated evaluation pipelines
 gcloud logging read 'resource.type="cloud_run_revision" resource.labels.service_name="docshound-backend"' \
-  --project=agent-clinic-e3-dev \
+  --project=my-gcp-project \
   --limit=100 \
   --format="json" > /tmp/docshound_cloud_traces.json
 ```

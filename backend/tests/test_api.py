@@ -149,7 +149,11 @@ class ApiTests(unittest.TestCase):
         with (
             patch(
                 "app.main.get_settings",
-                return_value=SimpleNamespace(app_env="development"),
+                return_value=SimpleNamespace(
+                    app_env="development",
+                    vertex_project=None,
+                    github_token=None,
+                ),
             ),
             patch("app.main.write_enabled", return_value=False),
         ):

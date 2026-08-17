@@ -94,11 +94,24 @@ existing local installations):
 ```text
 APP_ENV=development   # set to production to disable browser key entry
 GITHUB_TOKEN=          # optional server token for scans and documentation PRs
-MERGE_GATEWAY_API_KEY= # recommended: model-based analysis through Gateway
+
+# Google Cloud Vertex AI (Primary / Recommended - zero API keys required)
+# Uses Application Default Credentials (`gcloud auth application-default login` or Cloud IAM)
+VERTEX_PROJECT=        # e.g. your-gcp-project-id
+VERTEX_LOCATION=global
+VERTEX_PRIMARY_MODEL=google/gemini-3.7-flash
+VERTEX_FALLBACK_MODEL=google/gemini-3.5-flash
+
+# Optional: Merge Gateway (fallback when VERTEX_PROJECT is not set)
+MERGE_GATEWAY_API_KEY= 
 MERGE_GATEWAY_PRIMARY_MODEL=google/gemini-3.7-flash
 MERGE_GATEWAY_FALLBACK_MODEL=openai/gpt-5.6-luna
-OPENAI_API_KEY=        # optional legacy direct-provider fallback
+
+# Optional legacy direct-provider fallback
+OPENAI_API_KEY=        
 OPENAI_MODEL=gpt-4o-mini
+
+# Observability
 LANGSMITH_API_KEY=     # default OTLP trace destination
 LANGSMITH_PROJECT=docshound
 ALLOWED_ORIGINS=http://localhost:5173
@@ -121,20 +134,21 @@ VITE_API_BASE_URL=https://api.example.com
 ```
 
 Values prefixed with `VITE_` are public and embedded in the browser bundle.
-Never place Merge Gateway, model-provider, or GitHub credentials in the
+Never place Vertex AI, Merge Gateway, model-provider, or GitHub credentials in the
 frontend environment.
 
 In local development, a server-managed `GITHUB_TOKEN` is automatically verified
 for the repository entered on the homepage without being sent to or displayed
 in the browser. This is the recommended setup for repeatable demos. When no
 server token is configured, the readiness checklist can accept one GitHub token
-for repository research and documentation pull requests. The model connection
-menu can similarly send a Merge Gateway key to the backend. Browser-provided
-overrides are held only in backend process memory and cleared on restart. DocsHound
-automatically resolves the official documentation repository and folder from
-repository structure, README links, the GitHub homepage, and “Edit this page on
-GitHub” links. The detected source is shown before each run and can be
-overridden.
+for repository research and documentation pull requests. For model routing,
+DocsHound connects directly to Google Cloud Vertex AI via Application Default
+Credentials (ADC), with no API key needed. Alternatively, the model connection
+menu accepts an optional Merge Gateway key held only in backend process memory.
+DocsHound automatically resolves the official documentation repository and
+folder from repository structure, README links, the GitHub homepage, and “Edit
+this page on GitHub” links. The detected source is shown before each run and can
+be overridden.
 
 Pull-request previews always use that upstream documentation repository. Only
 after approval does DocsHound resolve a write destination: it writes directly
@@ -149,8 +163,8 @@ eight pages per finding. Larger roots use a bounded search of up to 100 pages.
 When documentation lives in a separate repository, its issues and merged pull
 requests can also be included as documentation-specific evidence. Browser
 credential entry is disabled when `APP_ENV` is `production`; production
-deployments should inject `GITHUB_TOKEN` and `MERGE_GATEWAY_API_KEY` through the
-server's secret manager.
+deployments should attach the Google Cloud service account with Vertex AI User
+permissions and inject `GITHUB_TOKEN` through the server's secret manager.
 
 ### OpenTelemetry and OpenInference tracing
 

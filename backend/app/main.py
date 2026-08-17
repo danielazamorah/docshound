@@ -239,8 +239,9 @@ async def runtime_config() -> RuntimeConfigResponse:
 
 
 def _runtime_config_response() -> RuntimeConfigResponse:
-    route = get_llm_route()
     settings = get_settings()
+    route = get_llm_route(settings)
+
     credential_input_enabled = settings.app_env.lower() not in {
         "production",
         "prod",
